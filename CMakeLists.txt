@@ -294,7 +294,7 @@ endif ()
 add_library(fmt)
 target_sources(fmt
   PUBLIC
-    FILE_SET fmt_module TYPE CXX_MODULES FILES src/fmt.cc ${FMT_SOURCES}
+    FILE_SET fmt_module TYPE CXX_MODULES FILES src/fmt.cc
     )
 
 add_library(fmt::fmt ALIAS fmt)
