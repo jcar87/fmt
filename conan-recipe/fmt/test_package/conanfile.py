@@ -12,6 +12,9 @@ class fmtTestConan(ConanFile):
     def requirements(self):
         self.requires(self.tested_reference_str)
 
+    def generate(self):
+        pass
+
     def build(self):
         cmake = CMake(self)
         cmake.configure()
