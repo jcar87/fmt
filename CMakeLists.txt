@@ -135,6 +135,42 @@ if (FMT_MASTER_PROJECT AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 project(FMT CXX)
+
+if(NOT DEFINED CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API)
+  set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
+  # set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "ac01f462-0f5f-432a-86aa-acef252918a6") # 3.27+ nightly
+endif()
+
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  # From: https://github.com/Kitware/CMake/blob/master/.gitlab/ci/cxx_modules_rules_gcc.cmake
+  string(CONCAT CMAKE_EXPERIMENTAL_CXX_SCANDEP_SOURCE
+    "<CMAKE_CXX_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -E -x c++ <SOURCE>"
+    " -MT <DYNDEP_FILE> -MD -MF <DEP_FILE>"
+    " -fmodules-ts -fdeps-file=<DYNDEP_FILE> -fdeps-target=<OBJECT> -fdeps-format=p1689r5"
+    " -o <PREPROCESSED_SOURCE>")
+  set(CMAKE_EXPERIMENTAL_CXX_MODULE_MAP_FORMAT "gcc")
+  string(CONCAT CMAKE_EXPERIMENTAL_CXX_MODULE_MAP_FLAG
+    # Turn on modules.
+    "-fmodules-ts"
+    # Read the module mapper file.
+    " -fmodule-mapper=<MODULE_MAP_FILE>"
+    # Make sure dependency tracking is enabled (missing from `try_*`).
+    " -MD"
+    # Suppress `CXX_MODULES +=` from generated depfile snippets.
+    " -fdeps-format=p1689r5"
+    # Force C++ as a language.
+    " -x c++")
+  set(CMAKE_EXPERIMENTAL_CXX_MODULE_BMI_ONLY_FLAG "-fmodule-only")
+endif()
+
 include(GNUInstallDirs)
 set_verbose(FMT_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
             "Installation directory for include files, a relative path that "
@@ -145,13 +181,13 @@ option(FMT_WERROR "Halt the compilation with an error on compiler warnings."
        OFF)
 
 # Options that control generation of various targets.
-option(FMT_DOC "Generate the doc target." ${FMT_MASTER_PROJECT})
+option(FMT_DOC "Generate the doc target." OFF)
 option(FMT_INSTALL "Generate the install target." ON)
-option(FMT_TEST "Generate the test target." ${FMT_MASTER_PROJECT})
+option(FMT_TEST "Generate the test target." OFF)
 option(FMT_FUZZ "Generate the fuzz target." OFF)
 option(FMT_CUDA_TEST "Generate the cuda-test target." OFF)
 option(FMT_OS "Include core requiring OS (Windows/Posix) " ON)
-option(FMT_MODULE "Build a module instead of a traditional library." OFF)
+# option(FMT_MODULE "Build a module instead of a traditional library." OFF)
 option(FMT_SYSTEM_HEADERS "Expose headers with marking them as system." OFF)
 
 if (FMT_TEST AND FMT_MODULE)
@@ -282,13 +318,13 @@ if (FMT_OS)
   set(FMT_SOURCES ${FMT_SOURCES} src/os.cc)
 endif ()
 
-add_module_library(fmt src/fmt.cc FALLBACK
-                   ${FMT_SOURCES} ${FMT_HEADERS} README.rst ChangeLog.rst
-                   IF FMT_MODULE)
+add_library(fmt)
+target_sources(fmt
+  PUBLIC
+    FILE_SET fmt_module TYPE CXX_MODULES FILES src/fmt.cc
+)
+
 add_library(fmt::fmt ALIAS fmt)
-if (FMT_MODULE)
-  enable_module(fmt)
-endif ()
 
 if (FMT_WERROR)
   target_compile_options(fmt PRIVATE ${WERROR_FLAG})
@@ -383,6 +419,7 @@ if (FMT_INSTALL)
   install(TARGETS ${INSTALL_TARGETS} EXPORT ${targets_export_name}
           LIBRARY DESTINATION ${FMT_LIB_DIR}
           ARCHIVE DESTINATION ${FMT_LIB_DIR}
+          FILE_SET fmt_module DESTINATION "${FMT_LIB_DIR}/cxx/miu"
           PUBLIC_HEADER DESTINATION "${FMT_INC_DIR}/fmt"
           RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
