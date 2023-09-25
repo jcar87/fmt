@@ -323,6 +323,7 @@ target_sources(fmt
   PUBLIC
     FILE_SET fmt_module TYPE CXX_MODULES FILES src/fmt.cc
 )
+target_compile_features(fmt PUBLIC cxx_std_20)
 
 add_library(fmt::fmt ALIAS fmt)
 
@@ -422,6 +423,9 @@ if (FMT_INSTALL)
           FILE_SET fmt_module DESTINATION "${FMT_LIB_DIR}/cxx/miu"
           PUBLIC_HEADER DESTINATION "${FMT_INC_DIR}/fmt"
           RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  # Install format.cc and os.cc which are #included by the fmt.cc module interface file
+  install(FILES src/format.cc src/os.cc DESTINATION "${FMT_LIB_DIR}/cxx/miu/src")
 
   # Use a namespace because CMake provides better diagnostics for namespaced
   # imported targets.
