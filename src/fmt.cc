@@ -3,6 +3,7 @@ module;
 // Put all implementation-provided headers into the global module fragment
 // to prevent attachment to this module.
 #include <algorithm>
+#include <bitset>
 #include <cerrno>
 #include <chrono>
 #include <climits>
@@ -23,6 +24,7 @@ module;
 #include <memory>
 #include <optional>
 #include <ostream>
+#include <source_location>
 #include <stdexcept>
 #include <string>
 #include <string_view>
