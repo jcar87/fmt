@@ -135,6 +135,13 @@ if (FMT_MASTER_PROJECT AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 project(FMT CXX)
+
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
 include(GNUInstallDirs)
 set_verbose(FMT_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
             "Installation directory for include files, a relative path that "
@@ -145,13 +152,13 @@ option(FMT_WERROR "Halt the compilation with an error on compiler warnings."
        OFF)
 
 # Options that control generation of various targets.
-option(FMT_DOC "Generate the doc target." ${FMT_MASTER_PROJECT})
+option(FMT_DOC "Generate the doc target." OFF)
 option(FMT_INSTALL "Generate the install target." ON)
-option(FMT_TEST "Generate the test target." ${FMT_MASTER_PROJECT})
+option(FMT_TEST "Generate the test target." OFF)
 option(FMT_FUZZ "Generate the fuzz target." OFF)
 option(FMT_CUDA_TEST "Generate the cuda-test target." OFF)
 option(FMT_OS "Include core requiring OS (Windows/Posix) " ON)
-option(FMT_MODULE "Build a module instead of a traditional library." OFF)
+#option(FMT_MODULE "Build a module instead of a traditional library." OFF)
 option(FMT_SYSTEM_HEADERS "Expose headers with marking them as system." OFF)
 
 if (FMT_TEST AND FMT_MODULE)
@@ -282,13 +289,13 @@ if (FMT_OS)
   set(FMT_SOURCES ${FMT_SOURCES} src/os.cc)
 endif ()
 
-add_module_library(fmt src/fmt.cc FALLBACK
-                   ${FMT_SOURCES} ${FMT_HEADERS} README.md ChangeLog.md
-                   IF FMT_MODULE)
+add_library(fmt)
+target_sources(fmt
+  PUBLIC
+    FILE_SET fmt_module TYPE CXX_MODULES FILES src/fmt.cc
+)
 add_library(fmt::fmt ALIAS fmt)
-if (FMT_MODULE)
-  enable_module(fmt)
-endif ()
+target_compile_features(fmt PUBLIC cxx_std_20)
 
 if (FMT_WERROR)
   target_compile_options(fmt PRIVATE ${WERROR_FLAG})
@@ -393,7 +400,11 @@ if (FMT_INSTALL)
           LIBRARY DESTINATION ${FMT_LIB_DIR}
           ARCHIVE DESTINATION ${FMT_LIB_DIR}
           PUBLIC_HEADER DESTINATION "${FMT_INC_DIR}/fmt"
+          FILE_SET fmt_module DESTINATION "${FMT_LIB_DIR}/cxx/miu"
           RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  # Install format.cc and os.cc which are #included by the fmt.cc module interface file
+  install(FILES src/format.cc src/os.cc DESTINATION "${FMT_LIB_DIR}/cxx/miu/src")
 
   # Use a namespace because CMake provides better diagnostics for namespaced
   # imported targets.
